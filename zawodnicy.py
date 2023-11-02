@@ -15,6 +15,7 @@ Cechy jakie chcemy zbadać:
 - Sprawdzić jakie statystyki musi mieć gracz by być w topce
 - Znaleźć mocne i słabe strony kazdej z drużyn
 - Zrobić wykresy korelacyjne ✅
+____________________________________________________
 
 #Przygotownie danych do analizy
 
