@@ -15,7 +15,6 @@ Cechy jakie chcemy zbadać:
 - Sprawdzić jakie statystyki musi mieć gracz by być w topce
 - Znaleźć mocne i słabe strony kazdej z drużyn
 - Zrobić wykresy korelacyjne ✅
-____________________________________________________
 
 #Przygotownie danych do analizy
 
@@ -320,6 +319,9 @@ plt.plot(pos_PF.iloc[:,4:].mean(axis = 0), marker='o',color = 'r',label = 'PF')
 plt.plot(pos_SG.iloc[:,4:].mean(axis = 0), marker='o',color = 'g',label = 'SG')
 plt.plot(pos_PG.iloc[:,4:].mean(axis = 0), marker='o',color = 'm',label = 'PG')
 plt.plot(pos_SF.iloc[:,4:].mean(axis = 0), marker='o',color = 'c',label = 'SF')
+plt.xlabel('Statystyki')
+plt.ylabel('Średnie po standaryzacji')
+plt.title('Wykres średnich dla każdej pozycji')
 plt.legend()
 plt.show()
 
@@ -334,4 +336,85 @@ SG(Rzucający Obrońca) - Głównie rzucają za 3
 PG(Rozgrywający) - Oddaje najwiecej rzutów na boisku co przekłada sie na najwiekszą liczbę punktów na mecz, głównie odpowiedzialni za rozdawanie asyst
 
 SF(Niski skrzydłowy) - Statystyki podobne do SG lecz posiada wiecej zbiórek
+
+#Predykcja Pozycji na bazie Statystyk
+
+##Przygotowanie Danych
+"""
+
+pos_C = []
+pos_PF = []
+pos_PG = []
+pos_SF = []
+pos_SG = []
+for i in range(len(Data_to_posision)):
+  #Zawodnicy o jednej pozycji
+    if Data_to_posision.iloc[i, 1] == 'C':
+        pos_C.append(Data_to_posision.iloc[i, :])
+    if Data_to_posision.iloc[i, 1] == 'PF':
+        pos_PF.append(Data_to_posision.iloc[i, :])
+    if Data_to_posision.iloc[i, 1] == 'PG':
+        pos_PG.append(Data_to_posision.iloc[i, :])
+    if Data_to_posision.iloc[i, 1] == 'SF':
+        pos_SF.append(Data_to_posision.iloc[i, :])
+    if Data_to_posision.iloc[i, 1] == 'SG':
+        pos_SG.append(Data_to_posision.iloc[i, :])
+
+pos_C = pd.DataFrame(pos_C)
+pos_PF = pd.DataFrame(pos_PF)
+pos_SG = pd.DataFrame(pos_SG)
+pos_PG = pd.DataFrame(pos_PG)
+pos_SF = pd.DataFrame(pos_SF)
+
+all_pos = pd.concat([pos_C, pos_PF, pos_PG, pos_SF,pos_SG], ignore_index=True)
+X = all_pos.iloc[:, 4:].values
+y = all_pos.iloc[:, 1].values
+
+print(all_pos)
+
+from sklearn.preprocessing import OneHotEncoder
+encoder = OneHotEncoder()
+y = encoder.fit_transform(y.reshape(-1, 1)).toarray()
+print(y)
+
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.2, random_state = 0)
+
+"""## Build ANN"""
+
+import tensorflow as tf
+ann = tf.keras.models.Sequential()
+
+ann.add(tf.keras.layers.Dense(5,activation='relu'))
+ann.add(tf.keras.layers.Dense(32,activation='relu'))
+ann.add(tf.keras.layers.Dense(64,activation='relu'))
+ann.add(tf.keras.layers.Dense(128,activation='relu'))
+ann.add(tf.keras.layers.Dense(256,activation='relu'))
+ann.add(tf.keras.layers.Dense(5,activation='softmax'))
+ann.compile(optimizer = 'adam',loss = 'categorical_crossentropy',metrics=['accuracy'])
+
+ann.fit(X_train, y_train ,epochs = 300)
+
+y_pred = ann.predict(X_test)
+
+y_test_numeric = np.argmax(y_test, axis=1)
+y_pred_numeric = np.argmax(y_pred, axis=1)
+print(y_test_numeric)
+
+print(y_pred_numeric)
+
+from sklearn.metrics import confusion_matrix, accuracy_score
+cm = confusion_matrix(y_test_numeric, y_pred_numeric)
+print(cm)
+accuracy_score(y_test_numeric, y_pred_numeric)
+
+# 0 - C
+# 1- PF
+# 2 - PG
+# 3 - SF
+# 4 - SG
+
+"""Wnioski :
+
+Jesteśmy bardzo dobrze przewidzieć pozycje jeżeli zawodnik gra na pozycji C i PG co pokazywał wykres średnich statystyk dla każdej z pozycji
 """
